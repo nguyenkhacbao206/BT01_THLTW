@@ -29,20 +29,41 @@ const SanPham: React.FC = () => {
 
   const [visible, setVisible] = useState(false);
   const [search, setSearch] = useState('');
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [form] = Form.useForm();
 
-  const onAdd = (values: any) => {
-    const newProduct: Product = {
-      id: Date.now(),
-      name: values.name,
-      price: values.price,
-      quantity: values.quantity,
-    };
+  const onFinish = (values: any) => {
+    if (editingProduct) {
+      // Update existing product
+      setProducts(products.map(p => 
+        p.id === editingProduct.id ? { ...p, ...values } : p
+      ));
+      message.success('Cập nhật sản phẩm thành công');
+    } else {
+      // Add new product
+      const newProduct: Product = {
+        id: Date.now(),
+        name: values.name,
+        price: values.price,
+        quantity: values.quantity,
+      };
+      setProducts([...products, newProduct]);
+      message.success('Thêm sản phẩm thành công');
+    }
+    
+    handleCancel();
+  };
 
-    setProducts([...products, newProduct]);
-    message.success('Thêm sản phẩm thành công');
-    form.resetFields();
+  const handleCancel = () => {
     setVisible(false);
+    setEditingProduct(null);
+    form.resetFields();
+  };
+
+  const onEdit = (record: Product) => {
+    setEditingProduct(record);
+    form.setFieldsValue(record);
+    setVisible(true);
   };
 
   const onDelete = (id: number) => {
@@ -76,12 +97,15 @@ const SanPham: React.FC = () => {
     {
       title: 'Thao tác',
       render: (_: any, record: Product) => (
-        <Popconfirm
-          title="Bạn có chắc muốn xóa sản phẩm này không?"
-          onConfirm={() => onDelete(record.id)}
-        >
-          <Button danger>Xóa</Button>
-        </Popconfirm>
+        <Space>
+          <Button type="primary" onClick={() => onEdit(record)}>Sửa</Button>
+          <Popconfirm
+            title="Bạn có chắc muốn xóa sản phẩm này không?"
+            onConfirm={() => onDelete(record.id)}
+          >
+            <Button danger>Xóa</Button>
+          </Popconfirm>
+        </Space>
       ),
     },
   ];
@@ -96,7 +120,11 @@ const SanPham: React.FC = () => {
           allowClear
           onChange={e => setSearch(e.target.value)}
         />
-        <Button type="primary" onClick={() => setVisible(true)}>
+        <Button type="primary" onClick={() => {
+          setEditingProduct(null);
+          form.resetFields();
+          setVisible(true);
+        }}>
           Thêm sản phẩm
         </Button>
       </Space>
@@ -109,13 +137,13 @@ const SanPham: React.FC = () => {
       />
 
       <Modal
-        title="Thêm sản phẩm"
+        title={editingProduct ? "Cập nhật sản phẩm" : "Thêm sản phẩm"}
         visible={visible}    
-        onCancel={() => setVisible(false)}
+        onCancel={handleCancel}
         footer={null}
         destroyOnClose
       >
-        <Form form={form} layout="vertical" onFinish={onAdd}>
+        <Form form={form} layout="vertical" onFinish={onFinish}>
           <Form.Item
             label="Tên sản phẩm"
             name="name"
@@ -147,7 +175,7 @@ const SanPham: React.FC = () => {
           </Form.Item>
 
           <Button type="primary" htmlType="submit" block>
-            Thêm
+            {editingProduct ? "Cập nhật" : "Thêm"}
           </Button>
         </Form>
       </Modal>
